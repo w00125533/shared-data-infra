@@ -10,23 +10,28 @@ Run these commands from `D:\agent-code\data-benchmark`.
   - `mvn package`
   - `docker compose -f docker-compose.yml build benchmark-runner`
   - `cd D:\agent-code\shared-data-infra`
-  - `docker compose -f compose.yaml -f compose.lakehouse.yaml --profile lakehouse up -d`
+  - `docker compose -f compose.yaml -f compose.lakehouse.yaml -f compose.starrocks.yaml --profile lakehouse --profile lakehouse-tools --profile spark-tools --profile starrocks up -d`
   - `cd D:\agent-code\data-benchmark`
-  - `docker compose -f docker-compose.yml up -d spark starrocks-fe starrocks-be`
   - `java -jar target/data-benchmark-0.1.0-SNAPSHOT.jar run --mode compose --config configs/benchmark-compose-smoke.yml --run-id compose-smoke`
 
-Services from current compose:
+Services owned by data-benchmark compose:
 
 ```text
-hdfs-namenode
-hdfs-datanode
+benchmark-runner
+```
+
+Services owned by shared-data-infra compose:
+
+```text
+hms-db
+namenode (hdfs-namenode alias)
+datanode
 hdfs-init
 hive-metastore
 hive-server
 spark
 starrocks-fe
 starrocks-be
-benchmark-runner
 ```
 
 ## flink-data-balance
