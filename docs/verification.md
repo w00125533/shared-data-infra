@@ -7,7 +7,7 @@
 - `docker compose -f compose.yaml -f compose.streaming.yaml --profile streaming config`: PASS
 - `docker compose -f compose.yaml -f compose.starrocks.yaml --profile starrocks config`: PASS
 - `docker compose -f compose.yaml --profile data-gov config`: PASS
-- `powershell -ExecutionPolicy Bypass -File scripts/infra-status.ps1`: PASS
+- `sh scripts/infra-status.sh`: PASS
 
 ## data-benchmark
 

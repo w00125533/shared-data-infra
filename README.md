@@ -23,26 +23,26 @@ Project compose files should connect app containers to this external network and
 
 Start the core lakehouse services:
 
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts\infra-up.ps1 -Profiles lakehouse
+```sh
+sh scripts/infra-up.sh lakehouse
 ```
 
 Start lakehouse plus streaming services:
 
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts\infra-up.ps1 -Profiles lakehouse,streaming
+```sh
+sh scripts/infra-up.sh lakehouse,streaming
 ```
 
 Show shared infrastructure status:
 
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts\infra-status.ps1
+```sh
+sh scripts/infra-status.sh
 ```
 
 Stop shared infrastructure:
 
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts\infra-down.ps1
+```sh
+sh scripts/infra-down.sh
 ```
 
 ## Lakehouse
