@@ -4,12 +4,12 @@ This repository owns shared local infrastructure for `data-benchmark`, `flink-da
 
 ## Profiles
 
-- `lakehouse`: HDFS, Hive Metastore.
-- `lakehouse-tools`: HiveServer2.
+- `lakehouse`: HDFS, Hive Metastore, and HDFS warehouse initialization.
+- `lakehouse-tools`: Long-running HiveServer2 for Beeline/JDBC clients.
 - `yarn`: ResourceManager and NodeManager.
-- `spark-tools`: Spark SQL tools.
+- `spark-tools`: Long-running Spark SQL tool service.
 - `streaming`: ZooKeeper-backed Kafka.
-- `starrocks`: Shared all-in-one StarRocks.
+- `starrocks`: Split StarRocks FE/BE services.
 - `data-gov`: Neo4j graph store for the data-gov app.
 - `observability`: Optional shared observability tools.
 
@@ -45,9 +45,27 @@ Stop shared infrastructure:
 sh scripts/infra-down.sh
 ```
 
+## Benchmark-Compatible Startup
+
+Start the full shared stack used by `data-benchmark` compose runs:
+
+```bash
+docker compose -f compose.yaml -f compose.lakehouse.yaml -f compose.starrocks.yaml --profile lakehouse --profile lakehouse-tools --profile spark-tools --profile starrocks up -d
+```
+
 ## Lakehouse
 
-The lakehouse overlay provides HDFS at `hdfs://namenode:8020`, Hive Metastore at `thrift://hive-metastore:9083`, optional HiveServer2, optional YARN, and an interactive Spark SQL tool container.
+The lakehouse overlay provides HDFS, Hive Metastore, HDFS warehouse initialization, optional HiveServer2, optional YARN, and a long-running Spark SQL tool container.
+
+Cross-project clients on the `shared-data-infra` network should use these internal endpoints:
+
+| Service | Endpoint |
+| --- | --- |
+| HDFS | `hdfs://hdfs-namenode:8020` |
+| Hive Metastore | `thrift://hive-metastore:9083` |
+| HiveServer2 | `jdbc:hive2://hive-server:10000/default` |
+
+The `lakehouse` profile includes `hdfs-init`, which creates `/warehouse/iceberg` in HDFS with benchmark-compatible permissions.
 
 Validate the core lakehouse profile:
 
@@ -73,16 +91,24 @@ Start lakehouse plus YARN:
 docker compose -f compose.yaml -f compose.lakehouse.yaml --profile lakehouse --profile yarn up -d
 ```
 
-Run Spark SQL after the lakehouse profile is healthy:
+Start lakehouse plus HiveServer2 and Spark tools for benchmark-compatible clients:
 
 ```bash
-docker compose -f compose.yaml -f compose.lakehouse.yaml --profile lakehouse --profile spark-tools run --rm spark
+docker compose -f compose.yaml -f compose.lakehouse.yaml --profile lakehouse --profile lakehouse-tools --profile spark-tools up -d
 ```
 
-HiveServer2 is available under the `lakehouse-tools` profile:
+Run Spark SQL after the `spark` service is healthy. The Spark tool service is long-running; use `docker compose exec` instead of one-shot `run` commands so clients share the same service lifecycle:
 
 ```bash
-docker compose -f compose.yaml -f compose.lakehouse.yaml --profile lakehouse --profile lakehouse-tools up -d hive-server
+docker compose -f compose.yaml -f compose.lakehouse.yaml --profile lakehouse --profile spark-tools exec spark /opt/spark/bin/spark-sql --master local[*]
+```
+
+HiveServer2 is available under the `lakehouse-tools` profile for Beeline and JDBC clients at `jdbc:hive2://hive-server:10000/default`.
+
+The Spark service mounts the benchmark workspace at `/workspace`. `BENCHMARK_WORKSPACE` defaults to `../data-benchmark`; override it when this repository and the benchmark repository are checked out in a different relative layout:
+
+```bash
+BENCHMARK_WORKSPACE=/absolute/path/to/data-benchmark docker compose -f compose.yaml -f compose.lakehouse.yaml --profile lakehouse --profile spark-tools up -d spark
 ```
 
 Ports can be overridden with environment variables from `env/ports.env`, including `HIVE_METASTORE_PORT`, `HIVE_SERVER_PORT`, `HDFS_NAMENODE_HTTP_PORT`, `HDFS_NAMENODE_RPC_PORT`, `HDFS_DATANODE_HTTP_PORT`, `HMS_DB_PORT`, `YARN_RM_PORT`, `YARN_RM_RPC_PORT`, and `YARN_NM_PORT`.
@@ -113,7 +139,15 @@ docker compose -f compose.yaml -f compose.streaming.yaml --profile streaming --p
 
 ## StarRocks
 
-The StarRocks overlay provides a shared all-in-one StarRocks service for local development. The all-in-one image is treated as stateless shared dev infrastructure here because this repo does not yet pin a confirmed durable data directory for `starrocks/allin1-ubuntu:3.2-latest`.
+The StarRocks overlay provides split FE/BE services for benchmark and local development workloads.
+
+Cross-project clients on the `shared-data-infra` network should use these internal endpoints:
+
+| Service | Endpoint |
+| --- | --- |
+| StarRocks FE HTTP | `http://starrocks-fe:8030` |
+| StarRocks FE MySQL | `starrocks-fe:9030` |
+| StarRocks BE HTTP | `http://starrocks-be:8040` |
 
 Validate the StarRocks profile:
 
@@ -127,7 +161,13 @@ Start StarRocks:
 docker compose -f compose.yaml -f compose.starrocks.yaml --profile starrocks up -d
 ```
 
-Ports can be overridden with `STARROCKS_HTTP_PORT`, `STARROCKS_MYSQL_PORT`, and `STARROCKS_BE_HTTP_PORT`.
+Host port bindings can be overridden with:
+
+| Variable | Default | Service port |
+| --- | ---: | ---: |
+| `STARROCKS_HTTP_PORT` | `8030` | FE HTTP `8030` |
+| `STARROCKS_MYSQL_PORT` | `9030` | FE MySQL `9030` |
+| `STARROCKS_BE_HTTP_PORT` | `8040` | BE HTTP `8040` |
 
 ## Data-Gov App State
 
