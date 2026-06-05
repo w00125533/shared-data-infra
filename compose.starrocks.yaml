@@ -15,6 +15,12 @@ services:
     ports:
       - "${STARROCKS_HTTP_PORT:-8030}:8030"
       - "${STARROCKS_MYSQL_PORT:-9030}:9030"
+    healthcheck:
+      test: ["CMD-SHELL", "mysql -h 127.0.0.1 -P 9030 -u root -e 'SELECT 1' > /dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 90s
     deploy:
       resources:
         limits:
@@ -29,9 +35,16 @@ services:
     environment:
       LOG_CONSOLE: "1"
     depends_on:
-      - starrocks-fe
+      starrocks-fe:
+        condition: service_healthy
     ports:
       - "${STARROCKS_BE_HTTP_PORT:-8040}:8040"
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/localhost/8040' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 90s
     deploy:
       resources:
         limits:

@@ -127,7 +127,7 @@ Start StarRocks:
 docker compose -f compose.yaml -f compose.starrocks.yaml --profile starrocks up -d
 ```
 
-Ports can be overridden with `STARROCKS_HTTP_PORT`, `STARROCKS_MYSQL_PORT`, and `STARROCKS_BE_PORT`.
+Ports can be overridden with `STARROCKS_HTTP_PORT`, `STARROCKS_MYSQL_PORT`, and `STARROCKS_BE_HTTP_PORT`.
 
 ## Data-Gov App State
 

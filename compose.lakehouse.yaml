@@ -145,6 +145,8 @@ services:
       - ./docker/hadoop-conf/core-site.xml:/opt/hive/conf/core-site.xml:ro
       - ./docker/hadoop-conf/hdfs-site.xml:/opt/hive/conf/hdfs-site.xml:ro
     depends_on:
+      hive-metastore:
+        condition: service_healthy
       hdfs-init:
         condition: service_completed_successfully
     healthcheck:
