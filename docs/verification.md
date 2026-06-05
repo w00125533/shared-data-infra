@@ -25,7 +25,7 @@ Note: changes were not committed in `flink-data-balance` because the worktree al
 ## data-gov
 
 - `docker compose -f base-compose.yml config`: PASS
-- `docker compose -f base-compose.yml --profile tools config`: PASS
+- `docker compose -f ../shared-data-infra/compose.yaml -f ../shared-data-infra/compose.lakehouse.yaml --profile lakehouse --profile yarn --profile spark-tools config`: PASS
 - `docker compose -f app-compose.yml config`: PASS
 - `bash -n scripts/init-stack.sh; bash -n scripts/wait-for-healthy.sh; bash -n init-scripts/02_kafka_init.sh`: PASS
 - `python -m pytest tests/api/test_fake_data.py tests/sandbox/test_hdfs.py -q`: PASS
