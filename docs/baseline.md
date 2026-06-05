@@ -2,6 +2,8 @@
 
 ## data-benchmark
 
+Run these commands from `D:\agent-code\data-benchmark`.
+
 - Compose: `docker compose -f docker-compose.yml config`
 - Unit tests: `mvn test`
 - Smoke:
@@ -27,6 +29,8 @@ benchmark-runner
 
 ## flink-data-balance
 
+Run these commands from `D:\agent-code\flink-data-balance`.
+
 - Compose: `docker compose -f docker/docker-compose.yml config`
 - Unit tests: `mvn test`
 - E2E: `bash scripts/e2e-smoke-test.sh`
@@ -48,6 +52,8 @@ hive-metastore
 ```
 
 ## data-gov
+
+Run these commands from `D:\agent-code\data-gov`.
 
 - Base compose: `docker compose -f base-compose.yml config`
 - App compose: `docker compose -f app-compose.yml config`
