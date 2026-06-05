@@ -21,6 +21,10 @@ services:
     image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
     hostname: namenode
     profiles: [lakehouse]
+    networks:
+      default:
+        aliases:
+          - hdfs-namenode
     environment:
       CLUSTER_NAME: shared-data-infra
       CORE_CONF_fs_defaultFS: hdfs://namenode:8020
