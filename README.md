@@ -5,11 +5,12 @@ This repository owns shared local infrastructure for `data-benchmark`, `flink-da
 ## Profiles
 
 - `lakehouse`: HDFS, Hive Metastore.
-- `lakehouse-tools`: HiveServer2 and Spark tools.
+- `lakehouse-tools`: HiveServer2.
 - `yarn`: ResourceManager and NodeManager.
-- `streaming`: Kafka and ZooKeeper/KRaft.
-- `starrocks`: StarRocks.
-- `observability`: Prometheus, Grafana, Kafka UI.
+- `spark-tools`: Spark SQL tools.
+- `streaming`: Kafka and ZooKeeper/KRaft, added by the streaming overlay.
+- `starrocks`: StarRocks, added by the StarRocks overlay.
+- `observability`: Prometheus, Grafana, Kafka UI, added by the observability overlay.
 
 ## Network
 
@@ -57,6 +58,6 @@ HiveServer2 is available under the `lakehouse-tools` profile:
 docker compose -f compose.yaml -f compose.lakehouse.yaml --profile lakehouse --profile lakehouse-tools up -d hive-server
 ```
 
-Ports can be overridden with environment variables such as `HIVE_METASTORE_PORT`, `HIVE_SERVER_PORT`, `HDFS_NAMENODE_HTTP_PORT`, `HDFS_NAMENODE_RPC_PORT`, `HMS_DB_PORT`, and the YARN port variables in `compose.lakehouse.yaml`.
+Ports can be overridden with environment variables from `env/ports.env`, including `HIVE_METASTORE_PORT`, `HIVE_SERVER_PORT`, `HDFS_NAMENODE_HTTP_PORT`, `HDFS_NAMENODE_RPC_PORT`, `HDFS_DATANODE_HTTP_PORT`, `HMS_DB_PORT`, `YARN_RM_PORT`, `YARN_RM_RPC_PORT`, and `YARN_NM_PORT`.
 
 The overlay vendors `docker/jars/postgresql-42.7.3.jar` and mounts it into Hive Metastore at `/opt/hive/lib/postgresql-42.7.3.jar`, because `apache/hive:4.0.0` does not include a PostgreSQL JDBC driver by default.

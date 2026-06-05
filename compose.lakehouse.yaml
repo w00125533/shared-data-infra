@@ -129,8 +129,8 @@ services:
       YARN_CONF_yarn_resourcemanager_hostname: resourcemanager
       SERVICE_PRECONDITION: "namenode:9870 datanode:9864"
     ports:
-      - "${YARN_RESOURCE_MANAGER_HTTP_PORT:-8088}:8088"
-      - "${YARN_RESOURCE_MANAGER_RPC_PORT:-8032}:8032"
+      - "${YARN_RM_PORT:-8088}:8088"
+      - "${YARN_RM_RPC_PORT:-8032}:8032"
     volumes:
       - ./docker/hadoop-conf/core-site.xml:/etc/hadoop/core-site.xml:ro
       - ./docker/hadoop-conf/hdfs-site.xml:/etc/hadoop/hdfs-site.xml:ro
@@ -157,7 +157,7 @@ services:
       YARN_CONF_yarn_resourcemanager_hostname: resourcemanager
       SERVICE_PRECONDITION: "resourcemanager:8088"
     ports:
-      - "${YARN_NODE_MANAGER_HTTP_PORT:-8042}:8042"
+      - "${YARN_NM_PORT:-8042}:8042"
     volumes:
       - ./docker/hadoop-conf/core-site.xml:/etc/hadoop/core-site.xml:ro
       - ./docker/hadoop-conf/hdfs-site.xml:/etc/hadoop/hdfs-site.xml:ro
