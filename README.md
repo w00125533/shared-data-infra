@@ -18,6 +18,32 @@ All shared services are attached to Docker network `shared-data-infra`.
 
 Project compose files should connect app containers to this external network and use environment variables for endpoints.
 
+## Helper Scripts
+
+Start the core lakehouse services:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\infra-up.ps1 -Profiles lakehouse
+```
+
+Start lakehouse plus streaming services:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\infra-up.ps1 -Profiles lakehouse,streaming
+```
+
+Show shared infrastructure status:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\infra-status.ps1
+```
+
+Stop shared infrastructure:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\infra-down.ps1
+```
+
 ## Lakehouse
 
 The lakehouse overlay provides HDFS at `hdfs://namenode:8020`, Hive Metastore at `thrift://hive-metastore:9083`, optional HiveServer2, optional YARN, and an interactive Spark SQL tool container.
