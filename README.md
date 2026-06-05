@@ -8,6 +8,9 @@ This repository owns shared local infrastructure for `data-benchmark`, `flink-da
 - `lakehouse-tools`: HiveServer2.
 - `yarn`: ResourceManager and NodeManager.
 - `spark-tools`: Spark SQL tools.
+- `streaming`: ZooKeeper-backed Kafka.
+- `starrocks`: Shared all-in-one StarRocks.
+- `observability`: Optional shared observability tools.
 
 ## Network
 
@@ -58,3 +61,43 @@ docker compose -f compose.yaml -f compose.lakehouse.yaml --profile lakehouse --p
 Ports can be overridden with environment variables from `env/ports.env`, including `HIVE_METASTORE_PORT`, `HIVE_SERVER_PORT`, `HDFS_NAMENODE_HTTP_PORT`, `HDFS_NAMENODE_RPC_PORT`, `HDFS_DATANODE_HTTP_PORT`, `HMS_DB_PORT`, `YARN_RM_PORT`, `YARN_RM_RPC_PORT`, and `YARN_NM_PORT`.
 
 The overlay vendors `docker/jars/postgresql-42.7.3.jar` and mounts it into Hive Metastore at `/opt/hive/lib/postgresql-42.7.3.jar`, because `apache/hive:4.0.0` does not include a PostgreSQL JDBC driver by default.
+
+## Streaming
+
+The streaming overlay provides ZooKeeper-backed Kafka for initial `flink-data-balance` migration compatibility. Shared app containers should use `kafka:9092` as the internal Kafka bootstrap endpoint. Host clients can use `localhost:${KAFKA_EXTERNAL_PORT:-19092}`.
+
+Validate the streaming profile:
+
+```bash
+docker compose -f compose.yaml -f compose.streaming.yaml --profile streaming config
+```
+
+Start the streaming services:
+
+```bash
+docker compose -f compose.yaml -f compose.streaming.yaml --profile streaming up -d
+```
+
+Kafka UI is available under the `observability` profile:
+
+```bash
+docker compose -f compose.yaml -f compose.streaming.yaml --profile streaming --profile observability up -d kafka-ui
+```
+
+## StarRocks
+
+The StarRocks overlay provides a shared all-in-one StarRocks service for local development. The all-in-one image is treated as stateless shared dev infrastructure here because this repo does not yet pin a confirmed durable data directory for `starrocks/allin1-ubuntu:3.2-latest`.
+
+Validate the StarRocks profile:
+
+```bash
+docker compose -f compose.yaml -f compose.starrocks.yaml --profile starrocks config
+```
+
+Start StarRocks:
+
+```bash
+docker compose -f compose.yaml -f compose.starrocks.yaml --profile starrocks up -d
+```
+
+Ports can be overridden with `STARROCKS_HTTP_PORT`, `STARROCKS_MYSQL_PORT`, and `STARROCKS_BE_PORT`.

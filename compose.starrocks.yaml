@@ -1,0 +1,15 @@
+services:
+  starrocks:
+    image: starrocks/allin1-ubuntu:3.2-latest
+    hostname: starrocks
+    profiles: [starrocks]
+    ports:
+      - "${STARROCKS_HTTP_PORT:-8030}:8030"
+      - "${STARROCKS_MYSQL_PORT:-9030}:9030"
+      - "${STARROCKS_BE_PORT:-9060}:9060"
+    healthcheck:
+      test: ["CMD-SHELL", "mysql -h 127.0.0.1 -P 9030 -u root -e 'SELECT 1' > /dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 90s
