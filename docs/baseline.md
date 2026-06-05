@@ -9,7 +9,9 @@ Run these commands from `D:\agent-code\data-benchmark`.
 - Smoke:
   - `mvn package`
   - `docker compose -f docker-compose.yml build benchmark-runner`
-  - `powershell -ExecutionPolicy Bypass -File ..\shared-data-infra\scripts\infra-up.ps1 -Profiles lakehouse`
+  - `cd D:\agent-code\shared-data-infra`
+  - `docker compose -f compose.yaml -f compose.lakehouse.yaml --profile lakehouse up -d`
+  - `cd D:\agent-code\data-benchmark`
   - `docker compose -f docker-compose.yml up -d spark starrocks-fe starrocks-be`
   - `java -jar target/data-benchmark-0.1.0-SNAPSHOT.jar run --mode compose --config configs/benchmark-compose-smoke.yml --run-id compose-smoke`
 
