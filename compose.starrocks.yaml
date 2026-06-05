@@ -1,15 +1,39 @@
 services:
-  starrocks:
-    image: starrocks/allin1-ubuntu:3.2-latest
-    hostname: starrocks
+  starrocks-fe:
+    image: starrocks/fe-ubuntu:3.3-latest
+    hostname: starrocks-fe-0
     profiles: [starrocks]
+    command:
+      - bash
+      - -lc
+      - |
+        sed -i '/^JAVA_OPTS=/d' /opt/starrocks/fe/conf/fe.conf
+        printf '%s\n' 'JAVA_OPTS="-Dlog4j2.formatMsgNoLookups=true -Xmx1536m -XX:+UseG1GC -Djava.security.policy=/opt/starrocks/fe/conf/udf_security.policy"' >> /opt/starrocks/fe/conf/fe.conf
+        exec /opt/starrocks/fe_entrypoint.sh starrocks-fe
+    environment:
+      LOG_CONSOLE: "1"
     ports:
       - "${STARROCKS_HTTP_PORT:-8030}:8030"
       - "${STARROCKS_MYSQL_PORT:-9030}:9030"
-      - "${STARROCKS_BE_PORT:-9060}:9060"
-    healthcheck:
-      test: ["CMD-SHELL", "mysql -h 127.0.0.1 -P 9030 -u root -e 'SELECT 1' > /dev/null 2>&1"]
-      interval: 10s
-      timeout: 5s
-      retries: 30
-      start_period: 90s
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2GB
+
+  starrocks-be:
+    image: starrocks/be-ubuntu:3.3-latest
+    hostname: starrocks-be-0
+    profiles: [starrocks]
+    command: ["/opt/starrocks/be_entrypoint.sh", "starrocks-fe"]
+    environment:
+      LOG_CONSOLE: "1"
+    depends_on:
+      - starrocks-fe
+    ports:
+      - "${STARROCKS_BE_HTTP_PORT:-8040}:8040"
+    deploy:
+      resources:
+        limits:
+          cpus: "6"
+          memory: 5GB

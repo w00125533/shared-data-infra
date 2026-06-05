@@ -97,15 +97,47 @@ services:
       retries: 30
       start_period: 60s
 
+  hdfs-init:
+    image: apache/hadoop:3.3.6
+    profiles: [lakehouse]
+    command:
+      - bash
+      - -lc
+      - |
+        for i in $(seq 1 60); do
+          hdfs dfs -fs hdfs://hdfs-namenode:8020 -mkdir -p /warehouse/iceberg && \
+          hdfs dfs -fs hdfs://hdfs-namenode:8020 -chmod -R 777 /warehouse && exit 0
+          sleep 2
+        done
+        exit 1
+    environment:
+      HADOOP_HOME: "/opt/hadoop"
+      HADOOP_CONF_DIR: "/opt/hadoop/etc/hadoop"
+      CORE-SITE.XML_fs.defaultFS: "hdfs://hdfs-namenode:8020"
+    depends_on:
+      datanode:
+        condition: service_healthy
+    networks:
+      - default
+
   hive-server:
     image: apache/hive:4.0.0
     hostname: hive-server
     profiles: [lakehouse-tools]
+    entrypoint: ["bash", "-lc"]
+    command:
+      - |
+        exec /opt/hive/bin/hive --skiphadoopversion --skiphbasecp --service hiveserver2 \
+          --hiveconf hive.metastore.uris=thrift://hive-metastore:9083 \
+          --hiveconf hive.server2.thrift.bind.host=0.0.0.0 \
+          --hiveconf hive.server2.thrift.port=10000
     environment:
-      SERVICE_NAME: hiveserver2
+      IS_RESUME: "true"
+      SKIP_SCHEMA_INIT: "true"
       SERVICE_OPTS: >-
         -Dhive.metastore.uris=thrift://hive-metastore:9083
-        -Dfs.defaultFS=hdfs://namenode:8020
+        -Dhive.server2.thrift.bind.host=0.0.0.0
+        -Dhive.server2.thrift.port=10000
     ports:
       - "${HIVE_SERVER_PORT:-10000}:10000"
     volumes:
@@ -113,10 +145,8 @@ services:
       - ./docker/hadoop-conf/core-site.xml:/opt/hive/conf/core-site.xml:ro
       - ./docker/hadoop-conf/hdfs-site.xml:/opt/hive/conf/hdfs-site.xml:ro
     depends_on:
-      hive-metastore:
-        condition: service_healthy
-      datanode:
-        condition: service_healthy
+      hdfs-init:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/localhost/10000' || exit 1"]
       interval: 10s
@@ -178,17 +208,25 @@ services:
       start_period: 30s
 
   spark:
-    image: apache/spark:3.5.4
+    image: apache/spark:3.5.8-java17
     hostname: spark
     profiles: [spark-tools]
-    entrypoint: ["/opt/spark/bin/spark-sql"]
+    working_dir: /workspace
+    command: ["sleep", "infinity"]
     environment:
+      SPARK_MODE: master
       HADOOP_CONF_DIR: /etc/hadoop
       HIVE_CONF_DIR: /etc/hive/conf
     volumes:
+      - ${BENCHMARK_WORKSPACE:-../data-benchmark}:/workspace
       - ./docker/hadoop-conf/core-site.xml:/etc/hadoop/core-site.xml:ro
       - ./docker/hadoop-conf/hdfs-site.xml:/etc/hadoop/hdfs-site.xml:ro
       - ./docker/hive-conf/hive-site.xml:/etc/hive/conf/hive-site.xml:ro
     depends_on:
-      hive-metastore:
-        condition: service_healthy
+      hdfs-init:
+        condition: service_completed_successfully
+    deploy:
+      resources:
+        limits:
+          cpus: "6"
+          memory: 3GB
