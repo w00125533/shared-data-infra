@@ -1,0 +1,197 @@
+services:
+  hms-db:
+    image: postgres:15-alpine
+    container_name: hms-db
+    profiles: [lakehouse]
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-hive}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hive}
+      POSTGRES_DB: ${POSTGRES_DB:-metastore}
+    ports:
+      - "${HMS_DB_PORT:-15432}:5432"
+    volumes:
+      - hms-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hive} -d ${POSTGRES_DB:-metastore}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+
+  namenode:
+    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    container_name: namenode
+    hostname: namenode
+    profiles: [lakehouse]
+    environment:
+      CLUSTER_NAME: shared-data-infra
+      CORE_CONF_fs_defaultFS: hdfs://namenode:8020
+    ports:
+      - "${HDFS_NAMENODE_HTTP_PORT:-9870}:9870"
+      - "${HDFS_NAMENODE_RPC_PORT:-8020}:8020"
+    volumes:
+      - hdfs-namenode:/hadoop/dfs/name
+      - ./docker/hadoop-conf/core-site.xml:/etc/hadoop/core-site.xml:ro
+      - ./docker/hadoop-conf/hdfs-site.xml:/etc/hadoop/hdfs-site.xml:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9870/dfshealth.html > /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 30s
+
+  datanode:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: datanode
+    hostname: datanode
+    profiles: [lakehouse]
+    environment:
+      CORE_CONF_fs_defaultFS: hdfs://namenode:8020
+      SERVICE_PRECONDITION: "namenode:9870"
+    ports:
+      - "${HDFS_DATANODE_HTTP_PORT:-9864}:9864"
+    volumes:
+      - hdfs-datanode:/hadoop/dfs/data
+      - ./docker/hadoop-conf/core-site.xml:/etc/hadoop/core-site.xml:ro
+      - ./docker/hadoop-conf/hdfs-site.xml:/etc/hadoop/hdfs-site.xml:ro
+    depends_on:
+      namenode:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9864 > /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 30s
+
+  hive-metastore:
+    image: apache/hive:4.0.0
+    container_name: hive-metastore
+    hostname: hive-metastore
+    profiles: [lakehouse]
+    environment:
+      SERVICE_NAME: metastore
+      DB_DRIVER: postgres
+      IS_RESUME: "false"
+      SERVICE_OPTS: >-
+        -Djavax.jdo.option.ConnectionDriverName=org.postgresql.Driver
+        -Djavax.jdo.option.ConnectionURL=jdbc:postgresql://hms-db:5432/${POSTGRES_DB:-metastore}
+        -Djavax.jdo.option.ConnectionUserName=${POSTGRES_USER:-hive}
+        -Djavax.jdo.option.ConnectionPassword=${POSTGRES_PASSWORD:-hive}
+    ports:
+      - "${HIVE_METASTORE_PORT:-9083}:9083"
+    volumes:
+      - ./docker/hive-conf/hive-site.xml:/opt/hive/conf/hive-site.xml:ro
+      - ./docker/hadoop-conf/core-site.xml:/opt/hive/conf/core-site.xml:ro
+      - ./docker/hadoop-conf/hdfs-site.xml:/opt/hive/conf/hdfs-site.xml:ro
+    depends_on:
+      hms-db:
+        condition: service_healthy
+      namenode:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/localhost/9083' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+
+  hive-server:
+    image: apache/hive:4.0.0
+    container_name: hive-server
+    hostname: hive-server
+    profiles: [lakehouse-tools]
+    environment:
+      SERVICE_NAME: hiveserver2
+      SERVICE_OPTS: >-
+        -Dhive.metastore.uris=thrift://hive-metastore:9083
+        -Dfs.defaultFS=hdfs://namenode:8020
+    ports:
+      - "${HIVE_SERVER_PORT:-10000}:10000"
+    volumes:
+      - ./docker/hive-conf/hive-site.xml:/opt/hive/conf/hive-site.xml:ro
+      - ./docker/hadoop-conf/core-site.xml:/opt/hive/conf/core-site.xml:ro
+      - ./docker/hadoop-conf/hdfs-site.xml:/opt/hive/conf/hdfs-site.xml:ro
+    depends_on:
+      hive-metastore:
+        condition: service_healthy
+      datanode:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/localhost/10000' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+
+  resourcemanager:
+    image: bde2020/hadoop-resourcemanager:2.0.0-hadoop3.2.1-java8
+    container_name: resourcemanager
+    hostname: resourcemanager
+    profiles: [yarn]
+    environment:
+      CORE_CONF_fs_defaultFS: hdfs://namenode:8020
+      YARN_CONF_yarn_resourcemanager_hostname: resourcemanager
+      SERVICE_PRECONDITION: "namenode:9870 datanode:9864"
+    ports:
+      - "${YARN_RESOURCE_MANAGER_HTTP_PORT:-8088}:8088"
+      - "${YARN_RESOURCE_MANAGER_RPC_PORT:-8032}:8032"
+    volumes:
+      - ./docker/hadoop-conf/core-site.xml:/etc/hadoop/core-site.xml:ro
+      - ./docker/hadoop-conf/hdfs-site.xml:/etc/hadoop/hdfs-site.xml:ro
+      - ./docker/hadoop-conf/yarn-site.xml:/etc/hadoop/yarn-site.xml:ro
+      - ./docker/hadoop-conf/mapred-site.xml:/etc/hadoop/mapred-site.xml:ro
+    depends_on:
+      namenode:
+        condition: service_healthy
+      datanode:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://resourcemanager:8088/ws/v1/cluster/info | grep -q STARTED"]
+      interval: 10s
+      timeout: 5s
+      retries: 24
+      start_period: 30s
+
+  nodemanager:
+    image: bde2020/hadoop-nodemanager:2.0.0-hadoop3.2.1-java8
+    container_name: nodemanager
+    hostname: nodemanager
+    profiles: [yarn]
+    environment:
+      CORE_CONF_fs_defaultFS: hdfs://namenode:8020
+      YARN_CONF_yarn_resourcemanager_hostname: resourcemanager
+      SERVICE_PRECONDITION: "resourcemanager:8088"
+    ports:
+      - "${YARN_NODE_MANAGER_HTTP_PORT:-8042}:8042"
+    volumes:
+      - ./docker/hadoop-conf/core-site.xml:/etc/hadoop/core-site.xml:ro
+      - ./docker/hadoop-conf/hdfs-site.xml:/etc/hadoop/hdfs-site.xml:ro
+      - ./docker/hadoop-conf/yarn-site.xml:/etc/hadoop/yarn-site.xml:ro
+      - ./docker/hadoop-conf/mapred-site.xml:/etc/hadoop/mapred-site.xml:ro
+    depends_on:
+      resourcemanager:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8042 > /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 30s
+
+  spark:
+    image: apache/spark:3.5.4
+    container_name: spark
+    hostname: spark
+    profiles: [spark-tools]
+    entrypoint: ["/opt/spark/bin/spark-sql"]
+    environment:
+      HADOOP_CONF_DIR: /etc/hadoop
+      HIVE_CONF_DIR: /etc/hive/conf
+    volumes:
+      - ./docker/hadoop-conf/core-site.xml:/etc/hadoop/core-site.xml:ro
+      - ./docker/hadoop-conf/hdfs-site.xml:/etc/hadoop/hdfs-site.xml:ro
+      - ./docker/hive-conf/hive-site.xml:/etc/hive/conf/hive-site.xml:ro
+    depends_on:
+      hive-metastore:
+        condition: service_healthy
