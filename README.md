@@ -8,9 +8,6 @@ This repository owns shared local infrastructure for `data-benchmark`, `flink-da
 - `lakehouse-tools`: HiveServer2.
 - `yarn`: ResourceManager and NodeManager.
 - `spark-tools`: Spark SQL tools.
-- `streaming`: Kafka and ZooKeeper/KRaft, added by the streaming overlay.
-- `starrocks`: StarRocks, added by the StarRocks overlay.
-- `observability`: Prometheus, Grafana, Kafka UI, added by the observability overlay.
 
 ## Network
 
