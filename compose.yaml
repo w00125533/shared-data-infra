@@ -1,0 +1,13 @@
+name: shared-data-infra
+
+networks:
+  default:
+    name: shared-data-infra
+
+volumes:
+  hdfs-namenode:
+  hdfs-datanode:
+  hms-db:
+  kafka-data:
+  starrocks-data:
+  grafana-data:
