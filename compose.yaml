@@ -9,5 +9,4 @@ volumes:
   hdfs-datanode:
   hms-db:
   kafka-data:
-  starrocks-data:
   grafana-data:
