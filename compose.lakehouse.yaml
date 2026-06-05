@@ -1,7 +1,6 @@
 services:
   hms-db:
     image: postgres:15-alpine
-    container_name: hms-db
     profiles: [lakehouse]
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-hive}
@@ -20,7 +19,6 @@ services:
 
   namenode:
     image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
-    container_name: namenode
     hostname: namenode
     profiles: [lakehouse]
     environment:
@@ -42,7 +40,6 @@ services:
 
   datanode:
     image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
-    container_name: datanode
     hostname: datanode
     profiles: [lakehouse]
     environment:
@@ -66,7 +63,6 @@ services:
 
   hive-metastore:
     image: apache/hive:4.0.0
-    container_name: hive-metastore
     hostname: hive-metastore
     profiles: [lakehouse]
     environment:
@@ -84,6 +80,7 @@ services:
       - ./docker/hive-conf/hive-site.xml:/opt/hive/conf/hive-site.xml:ro
       - ./docker/hadoop-conf/core-site.xml:/opt/hive/conf/core-site.xml:ro
       - ./docker/hadoop-conf/hdfs-site.xml:/opt/hive/conf/hdfs-site.xml:ro
+      - ./docker/jars/postgresql-42.7.3.jar:/opt/hive/lib/postgresql-42.7.3.jar:ro
     depends_on:
       hms-db:
         condition: service_healthy
@@ -98,7 +95,6 @@ services:
 
   hive-server:
     image: apache/hive:4.0.0
-    container_name: hive-server
     hostname: hive-server
     profiles: [lakehouse-tools]
     environment:
@@ -126,7 +122,6 @@ services:
 
   resourcemanager:
     image: bde2020/hadoop-resourcemanager:2.0.0-hadoop3.2.1-java8
-    container_name: resourcemanager
     hostname: resourcemanager
     profiles: [yarn]
     environment:
@@ -155,7 +150,6 @@ services:
 
   nodemanager:
     image: bde2020/hadoop-nodemanager:2.0.0-hadoop3.2.1-java8
-    container_name: nodemanager
     hostname: nodemanager
     profiles: [yarn]
     environment:
@@ -181,7 +175,6 @@ services:
 
   spark:
     image: apache/spark:3.5.4
-    container_name: spark
     hostname: spark
     profiles: [spark-tools]
     entrypoint: ["/opt/spark/bin/spark-sql"]

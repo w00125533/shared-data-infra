@@ -59,4 +59,4 @@ docker compose -f compose.yaml -f compose.lakehouse.yaml --profile lakehouse --p
 
 Ports can be overridden with environment variables such as `HIVE_METASTORE_PORT`, `HIVE_SERVER_PORT`, `HDFS_NAMENODE_HTTP_PORT`, `HDFS_NAMENODE_RPC_PORT`, `HMS_DB_PORT`, and the YARN port variables in `compose.lakehouse.yaml`.
 
-The overlay does not vendor a PostgreSQL JDBC driver. It relies on the `apache/hive:4.0.0` image to provide a usable Postgres driver; if the image does not include one in your environment, build a derived Hive image or mount a compatible driver into `/opt/hive/lib/`.
+The overlay vendors `docker/jars/postgresql-42.7.3.jar` and mounts it into Hive Metastore at `/opt/hive/lib/postgresql-42.7.3.jar`, because `apache/hive:4.0.0` does not include a PostgreSQL JDBC driver by default.
