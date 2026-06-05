@@ -10,3 +10,25 @@ volumes:
   hms-db:
   kafka-data:
   grafana-data:
+  neo4j-data:
+
+services:
+  neo4j:
+    image: neo4j:5-community
+    hostname: neo4j
+    profiles: [data-gov]
+    environment:
+      NEO4J_AUTH: ${NEO4J_AUTH:-neo4j/data-gov-neo4j}
+      NEO4J_PLUGINS: '["apoc"]'
+      NEO4J_dbms_security_procedures_unrestricted: "apoc.*"
+    ports:
+      - "${NEO4J_HTTP_PORT:-7474}:7474"
+      - "${NEO4J_BOLT_PORT:-7687}:7687"
+    volumes:
+      - neo4j-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7474/ | grep -q neo4j_version"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 30s

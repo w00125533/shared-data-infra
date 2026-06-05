@@ -10,6 +10,7 @@ This repository owns shared local infrastructure for `data-benchmark`, `flink-da
 - `spark-tools`: Spark SQL tools.
 - `streaming`: ZooKeeper-backed Kafka.
 - `starrocks`: Shared all-in-one StarRocks.
+- `data-gov`: Neo4j graph store for the data-gov app.
 - `observability`: Optional shared observability tools.
 
 ## Network
@@ -127,3 +128,19 @@ docker compose -f compose.yaml -f compose.starrocks.yaml --profile starrocks up 
 ```
 
 Ports can be overridden with `STARROCKS_HTTP_PORT`, `STARROCKS_MYSQL_PORT`, and `STARROCKS_BE_PORT`.
+
+## Data-Gov App State
+
+The `data-gov` profile provides Neo4j for the `data-gov` application. Backend containers should use `bolt://neo4j:7687` on the shared network; host-side init scripts can use `bolt://localhost:${NEO4J_BOLT_PORT:-7687}`.
+
+Validate the profile:
+
+```bash
+docker compose -f compose.yaml --profile data-gov config
+```
+
+Start Neo4j:
+
+```bash
+docker compose -f compose.yaml --profile data-gov up -d neo4j
+```
