@@ -65,7 +65,14 @@ Cross-project clients on the `shared-data-infra` network should use these intern
 | Hive Metastore | `thrift://hive-metastore:9083` |
 | HiveServer2 | `jdbc:hive2://hive-server:10000/default` |
 
-The `lakehouse` profile includes `hdfs-init`, which creates `/warehouse/iceberg` in HDFS with benchmark-compatible permissions.
+The `lakehouse` profile includes `hdfs-init`, which creates the shared HDFS roots used by local services:
+
+| Path | Purpose |
+| --- | --- |
+| `/warehouse/iceberg` | Hive Metastore / Iceberg table warehouse. Managed tables belong here, not raw generated data. |
+| `/services/<service-or-project>/<data-type>` | Service-owned data root. The second path segment is the service or project name; the third segment is the data type. |
+
+`data-benchmark` writes generated HDFS parquet under `/services/data-benchmark/generated/...`. The shared layout intentionally avoids a generic `/data` root and no longer creates a top-level `/benchmark` root.
 
 Validate the core lakehouse profile:
 

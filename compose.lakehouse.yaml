@@ -78,6 +78,7 @@ services:
         -Djavax.jdo.option.ConnectionURL=jdbc:postgresql://hms-db:5432/${POSTGRES_DB:-metastore}
         -Djavax.jdo.option.ConnectionUserName=${POSTGRES_USER:-hive}
         -Djavax.jdo.option.ConnectionPassword=${POSTGRES_PASSWORD:-hive}
+        -Dmetastore.metastore.event.db.notification.api.auth=false
     ports:
       - "${HIVE_METASTORE_PORT:-9083}:9083"
     volumes:
@@ -105,8 +106,8 @@ services:
       - -lc
       - |
         for i in $(seq 1 60); do
-          hdfs dfs -fs hdfs://hdfs-namenode:8020 -mkdir -p /warehouse/iceberg && \
-          hdfs dfs -fs hdfs://hdfs-namenode:8020 -chmod -R 777 /warehouse && exit 0
+          hdfs dfs -fs hdfs://hdfs-namenode:8020 -mkdir -p /warehouse/iceberg /services/data-benchmark/generated && \
+          hdfs dfs -fs hdfs://hdfs-namenode:8020 -chmod 777 /warehouse /warehouse/iceberg /services /services/data-benchmark /services/data-benchmark/generated && exit 0
           sleep 2
         done
         exit 1
@@ -127,15 +128,22 @@ services:
     entrypoint: ["bash", "-lc"]
     command:
       - |
+        mkdir -p "$${HIVESERVER2_PID_DIR}" && rm -f "$${HIVESERVER2_PID_DIR}/hiveserver2.pid"
         exec /opt/hive/bin/hive --skiphadoopversion --skiphbasecp --service hiveserver2 \
           --hiveconf hive.metastore.uris=thrift://hive-metastore:9083 \
+          --hiveconf metastore.metastore.event.db.notification.api.auth=false \
+          --hiveconf hive.server2.enable.doAs=false \
           --hiveconf hive.server2.thrift.bind.host=0.0.0.0 \
           --hiveconf hive.server2.thrift.port=10000
     environment:
       IS_RESUME: "true"
       SKIP_SCHEMA_INIT: "true"
+      HADOOP_HEAPSIZE: "2048"
+      HIVESERVER2_PID_DIR: "/tmp/hive-pids"
       SERVICE_OPTS: >-
         -Dhive.metastore.uris=thrift://hive-metastore:9083
+        -Dmetastore.metastore.event.db.notification.api.auth=false
+        -Dhive.server2.enable.doAs=false
         -Dhive.server2.thrift.bind.host=0.0.0.0
         -Dhive.server2.thrift.port=10000
     ports:
@@ -230,5 +238,5 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "6"
-          memory: 3GB
+          cpus: "16"
+          memory: 18GB

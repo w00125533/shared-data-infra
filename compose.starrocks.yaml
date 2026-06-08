@@ -31,7 +31,13 @@ services:
     image: starrocks/be-ubuntu:3.3-latest
     hostname: starrocks-be-0
     profiles: [starrocks]
-    command: ["/opt/starrocks/be_entrypoint.sh", "starrocks-fe"]
+    command:
+      - bash
+      - -lc
+      - |
+        sed -i '/^trash_file_expire_time_sec[[:space:]]*=/d' /opt/starrocks/be/conf/be.conf
+        printf '%s\n' 'trash_file_expire_time_sec = 1800' >> /opt/starrocks/be/conf/be.conf
+        exec /opt/starrocks/be_entrypoint.sh starrocks-fe
     environment:
       LOG_CONSOLE: "1"
     depends_on:
@@ -39,6 +45,8 @@ services:
         condition: service_healthy
     ports:
       - "${STARROCKS_BE_HTTP_PORT:-8040}:8040"
+    volumes:
+      - starrocks-be-storage:/opt/starrocks/be/storage
     healthcheck:
       test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/localhost/8040' || exit 1"]
       interval: 10s
@@ -50,3 +58,6 @@ services:
         limits:
           cpus: "6"
           memory: 5GB
+
+volumes:
+  starrocks-be-storage:
