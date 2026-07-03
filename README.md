@@ -124,7 +124,7 @@ The overlay vendors `docker/jars/postgresql-42.7.3.jar` and mounts it into Hive 
 
 ## Streaming
 
-The streaming overlay provides ZooKeeper-backed Kafka for initial `flink-data-balance` migration compatibility. Shared app containers should use `kafka:9092` as the internal Kafka bootstrap endpoint. During `flink-data-balance` migration, replace the project-local bootstrap `kafka:29092` with the shared endpoint `kafka:9092`. Host clients can use `localhost:${KAFKA_EXTERNAL_PORT:-19092}`.
+The streaming overlay provides ZooKeeper-backed Kafka for shared local development. Shared app containers should use `kafka:9092` as the internal Kafka bootstrap endpoint. Host clients can use `localhost:${KAFKA_EXTERNAL_PORT:-9092}`. ZooKeeper is exposed on `localhost:${ZOOKEEPER_PORT:-2181}`.
 
 Validate the streaming profile:
 
